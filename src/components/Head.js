@@ -2,16 +2,27 @@ import { useDispatch } from "react-redux";
 import { toggleMenu } from "../utils/appSlice";
 import { useState ,useEffect} from "react";
 import { YOUTUBE_SEARCH_API } from "../utils/constants";
+import { useSelector } from "react-redux";
+import { cacheResults } from "../utils/searchSlice";
 
 const Head = () => {
   const [searchQuery,setSearchQuery] = useState("");
   const [suggestions,setSuggestions] = useState([]);
   const [showSuggestions,setShowSuggestions] = useState(false);
 
+  const searchCache = useSelector((store)=>store.search);
+
   //debouncing - No matter how many times you type within short intervals,only the last API call happens, after you stop typing for 200 ms.
   
   useEffect(()=>{
-    const timer = setTimeout(()=>getSearchSuggestions(),200);
+    const timer = setTimeout(()=>{
+      if(searchCache[searchQuery]){
+        setSuggestions(searchCache[searchQuery]);
+        console.log(suggestions);
+      }else{
+        getSearchSuggestions();
+      } 
+    },200);
     return () => {
       clearTimeout(timer);
     }
@@ -21,6 +32,9 @@ const Head = () => {
     const data = await fetch(YOUTUBE_SEARCH_API + searchQuery);
     const json = await data.json();
     setSuggestions(json[1]);
+    dispatch(cacheResults({
+      [searchQuery] : json[1]
+    }));
   }
 
   const dispatch = useDispatch();
